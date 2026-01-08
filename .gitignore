@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.env
+.venv/
+venv/
+backend/.venv/
+
+# Node / React
+node_modules/
+dist/
+build/
+.vite/
+
+# Logs
+*.log
