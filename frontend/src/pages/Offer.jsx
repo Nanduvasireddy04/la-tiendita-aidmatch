@@ -5,6 +5,8 @@ import { useAuth } from "../auth/authprovider";
 
 export default function Offer() {
   const { user, accessToken } = useAuth();
+  const [zipPlaces, setZipPlaces] = useState([]);
+  const [zipStatus, setZipStatus] = useState("");
 
   const [category, setCategory] = useState("food");
   const [description, setDescription] = useState("");
@@ -12,6 +14,41 @@ export default function Offer() {
   const [city, setCity] = useState("");
   const [zip, setZip] = useState("");
   const [msg, setMsg] = useState("");
+
+  async function verifyZipAndLoadPlaces(zipValue) {
+  const z = (zipValue || "").trim();
+
+  setZipStatus("");
+  setZipPlaces([]);
+  setCity("");
+
+  if (z.length !== 5) return;
+
+  try {
+    setZipStatus("Checking ZIP...");
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/geo/zip/${z}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "ZIP lookup failed");
+    }
+    const data = await res.json();
+
+    const places = data.places || [];
+    setZipPlaces(places);
+
+    if (places.length === 1) {
+      setCity(places[0].city);
+      setZipStatus(`✅ Verified: ${places[0].city}, ${places[0].state}`);
+    } else if (places.length > 1) {
+      setZipStatus("✅ Verified: choose your city from the list");
+    } else {
+      setZipStatus("❌ ZIP not found");
+    }
+  } catch (e) {
+    setZipStatus(`❌ ${e.message}`);
+  }
+}
+
 
   async function submit(e) {
     e.preventDefault();
@@ -36,7 +73,7 @@ export default function Offer() {
       );
 
       localStorage.setItem("last_offer_id", String(data.id));
-      setMsg(`✅ Offer posted (ID ${data.id}).`);
+      setMsg(`✅ Offer posted.`);
     } catch (err) {
       setMsg(`❌ ${err.message}`);
     }
@@ -77,14 +114,41 @@ export default function Offer() {
           </label>
 
           <label>
-            City
-            <input value={city} onChange={(e) => setCity(e.target.value)} />
+            Zip Code
+            <input
+              value={zip}
+              onChange={(e) => {
+                const v = e.target.value.replace(/\D/g, "").slice(0, 5);
+                setZip(v);
+
+                if (v.length === 5) verifyZipAndLoadPlaces(v);
+                else {
+                  setZipPlaces([]);
+                  setCity("");
+                  setZipStatus("");
+                }
+              }}
+              placeholder="e.g., 02118"
+            />
+            {zipStatus && <p className="muted" style={{ marginTop: 6 }}>{zipStatus}</p>}
           </label>
 
           <label>
-            Zip Code
-            <input value={zip} onChange={(e) => setZip(e.target.value)} />
+            City
+            {zipPlaces.length > 1 ? (
+              <select value={city} onChange={(e) => setCity(e.target.value)}>
+                <option value="">Select city</option>
+                {zipPlaces.map((p, idx) => (
+                  <option key={idx} value={p.city}>
+                    {p.city}, {p.state}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input value={city} readOnly placeholder="Auto-filled from ZIP" />
+            )}
           </label>
+
 
           <button className="btn primary" disabled={!user}>
             Post Offer

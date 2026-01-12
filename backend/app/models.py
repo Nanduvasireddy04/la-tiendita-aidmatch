@@ -5,12 +5,22 @@ from .db import Base
 
 class User(Base):
     __tablename__ = "users"
+
     id = Column(Integer, primary_key=True, index=True)
-    anonymous_handle = Column(String(50), unique=True, index=True, nullable=False)
-    city = Column(String(100), nullable=False)
-    zip_code = Column(String(20), nullable=False)
-    role = Column(String(20), nullable=False)  # individual | group
+
+    # NEW: Supabase identity
+    supabase_uid = Column(String(100), unique=True, index=True, nullable=False)
+    email = Column(String(255), nullable=True)
+
+    # NEW: public anonymous-looking handle shown to everyone
+    public_handle = Column(String(60), unique=True, index=True, nullable=False)
+
+    # Optional profile fields (you can edit later)
+    city = Column(String(100), nullable=True)
+    zip_code = Column(String(20), nullable=True)
+    role = Column(String(20), nullable=True)  # individual | group
     preferred_safe_locations = Column(Text, nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     needs = relationship("Need", back_populates="user")
@@ -20,11 +30,13 @@ class Need(Base):
     __tablename__ = "needs"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
     category = Column(String(50), nullable=False)
     description = Column(Text, nullable=False)
     urgency = Column(String(10), nullable=False)  # low | medium | high
     city = Column(String(100), nullable=False)
     zip_code = Column(String(20), nullable=False)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="needs")
@@ -33,11 +45,13 @@ class Offer(Base):
     __tablename__ = "offers"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
     category = Column(String(50), nullable=False)
     description = Column(Text, nullable=False)
     quantity = Column(Integer, nullable=True)
     city = Column(String(100), nullable=False)
     zip_code = Column(String(20), nullable=False)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="offers")
@@ -45,9 +59,11 @@ class Offer(Base):
 class Match(Base):
     __tablename__ = "matches"
     id = Column(Integer, primary_key=True, index=True)
+
     need_id = Column(Integer, ForeignKey("needs.id"), nullable=False)
     offer_id = Column(Integer, ForeignKey("offers.id"), nullable=False)
-    match_score = Column(Numeric(5, 2), nullable=False, default=0)
+
+    match_score = Column(Numeric(6, 2), nullable=False, default=0)
     status = Column(String(20), nullable=False, default="suggested")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

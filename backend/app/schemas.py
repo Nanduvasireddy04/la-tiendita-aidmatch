@@ -6,15 +6,15 @@ SAFETY_REMINDER = (
     "Do not share personal home addresses."
 )
 
-class SignupRequest(BaseModel):
-    city: str
-    zip_code: str
-    role: str = Field(pattern="^(individual|group)$")
-    preferred_safe_locations: Optional[str] = None
+# --- Auth / User ---
+class MeOut(BaseModel):
+    public_handle: str
+    email: Optional[str] = None
+    role: Optional[str] = None
+    city: Optional[str] = None
+    zip_code: Optional[str] = None
 
-class SignupResponse(BaseModel):
-    anonymous_handle: str
-
+# --- Needs ---
 class NeedCreate(BaseModel):
     category: str
     description: str
@@ -22,6 +22,14 @@ class NeedCreate(BaseModel):
     city: str
     zip_code: str
 
+class NeedOut(NeedCreate):
+    id: int
+    user_id: int
+
+    class Config:
+        from_attributes = True
+
+# --- Offers ---
 class OfferCreate(BaseModel):
     category: str
     description: str
@@ -29,8 +37,36 @@ class OfferCreate(BaseModel):
     city: str
     zip_code: str
 
+class OfferOut(OfferCreate):
+    id: int
+    user_id: int
+
+    class Config:
+        from_attributes = True
+
+# --- Matching ---
+from pydantic import BaseModel
+
 class MatchResult(BaseModel):
-    need_id: int
-    offer_id: int
     match_score: float
+
+    offer_category: str
+    offer_description: str
+    offer_quantity: int | None = None
+    offer_city: str
+    offer_zip_code: str
+
     safety_text: str = SAFETY_REMINDER
+
+class MatchResponse(BaseModel):
+    results: List[MatchResult]
+
+class ZipPlace(BaseModel):
+    city: str
+    state: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+
+class ZipLookupResponse(BaseModel):
+    zip_code: str
+    places: List[ZipPlace]

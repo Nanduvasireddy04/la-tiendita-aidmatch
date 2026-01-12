@@ -3,6 +3,8 @@ import SafetyBanner from "../components/SafetyBanner";
 import { supabase } from "../auth/supabaseClient";
 import { useAuth } from "../auth/authprovider.jsx";
 import { useNavigate } from "react-router-dom";
+import { supabase as supabaseClient } from "../auth/supabaseClient.js";
+
 
 export default function Signup() {
   const { user } = useAuth();
@@ -16,8 +18,20 @@ export default function Signup() {
     if (user) nav("/");
   }, [user, nav]);
 
+//   async function signInWithFacebook() {
+//     const { error } = await supabaseClient.auth.signInWithOAuth({
+//       provider: "facebook",
+//       options: {
+//         redirectTo: `${window.location.origin}/auth/callback`,
+//       },
+//     });
+
+//   if (error) alert(error.message);
+// }
+
+
   async function signInWithGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: window.location.origin },
     });
@@ -65,13 +79,26 @@ export default function Signup() {
           <p className="muted">Or continue with</p>
 
           <div className="stack">
-            <button className="btn outline" onClick={signInWithGoogle}>
-              <span>🔵</span> Google
+            <button
+              type="button"
+              className="btn google-btn"
+              onClick={signInWithGoogle}
+            >
+              <img
+                src="https://developers.google.com/identity/images/g-logo.png"
+                alt="Google"
+                style={{
+                  width: "18px",
+                  height: "18px",
+                  marginRight: "10px",
+                }}
+              />
+              Google
             </button>
 
-            <button className="btn outline" disabled title="Facebook coming soon">
-              <span>🔵</span> Facebook
-            </button>
+            {/* <button className="btn outline" onClick={signInWithFacebook}>
+              <span></span> Facebook
+            </button> */}
           </div>
         </div>
       </div>

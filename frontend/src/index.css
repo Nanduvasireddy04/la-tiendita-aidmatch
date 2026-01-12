@@ -81,6 +81,29 @@ input, textarea, select {
   gap: 8px;
 }
 
+
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  background-color: #ffffff;
+  color: #000000;
+  border: 1px solid #dadce0;
+
+  font-weight: 500;
+}
+
+.google-btn:hover {
+  background-color: #f7f8f8;
+} 
+.google-content {
+  display: inline-flex;
+  align-items: center;     /* vertical centering */
+  gap: 10px;
+}
+
 .btn {
   display: inline-block;
   border: 1px solid transparent;
