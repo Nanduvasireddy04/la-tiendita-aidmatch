@@ -1,11 +1,14 @@
+
+
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/authprovider";
 
 export default function NavBar() {
   const nav = useNavigate();
-  const handle = localStorage.getItem("anonymous_handle");
+  const { user, signOut } = useAuth();
 
-  function logout() {
-    localStorage.removeItem("anonymous_handle");
+  async function logout() {
+    await signOut();
     localStorage.removeItem("last_need_id");
     localStorage.removeItem("last_offer_id");
     nav("/");
@@ -20,8 +23,9 @@ export default function NavBar() {
         <Link to="/offer">Offer</Link>
         <Link to="/matches">Matches</Link>
         <Link to="/group">Group</Link>
-        {!handle ? (
-          <Link to="/signup" className="pill">Signup</Link>
+
+        {!user ? (
+          <Link to="/signup" className="pill">Login</Link>
         ) : (
           <button className="pill" onClick={logout}>Logout</button>
         )}

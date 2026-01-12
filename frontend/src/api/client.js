@@ -1,44 +1,57 @@
-const BASE = import.meta.env.VITE_API_BASE;
 
-function withParams(path, params = {}) {
-  const url = new URL(BASE + path);
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, v);
-  });
-  return url.toString();
-}
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
-async function request(method, path, { params, body } = {}) {
-  const url = withParams(path, params);
+async function request(path, options = {}, accessToken) {
+  const url = `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
+
+  // Attach Supabase auth token to backend
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
   const res = await fetch(url, {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
+    ...options,
+    headers,
   });
-
-  const text = await res.text();
-  let data;
-  try { data = JSON.parse(text); } catch { data = text; }
 
   if (!res.ok) {
-    const detail = data?.detail ? JSON.stringify(data.detail) : (typeof data === "string" ? data : JSON.stringify(data));
-    throw new Error(`${res.status} ${res.statusText}: ${detail}`);
+    const text = await res.text();
+    throw new Error(text || `HTTP ${res.status}`);
   }
-  return data;
+
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) return res.json();
+  return res.text();
 }
 
 export const api = {
-  signup: (payload) => request("POST", "/signup", { body: payload }),
-  login: (anonymous_handle) => request("POST", "/login", { params: { anonymous_handle } }),
+  listNeeds(filters = {}, accessToken) {
+    const params = new URLSearchParams();
+    if (filters.city) params.append("city", filters.city);
+    if (filters.zip_code) params.append("zip_code", filters.zip_code);
+    if (filters.category) params.append("category", filters.category);
 
-  createNeed: (anonymous_handle, payload) =>
-    request("POST", "/needs", { params: { anonymous_handle }, body: payload }),
+    const query = params.toString();
+    return request(`/needs${query ? `?${query}` : ""}`, { method: "GET" }, accessToken);
+  },
 
-  createOffer: (anonymous_handle, payload) =>
-    request("POST", "/offers", { params: { anonymous_handle }, body: payload }),
+  createNeed(payload, accessToken) {
+    return request("/needs", { method: "POST", body: JSON.stringify(payload) }, accessToken);
+  },
 
-  listNeeds: (filters) => request("GET", "/needs", { params: filters }),
-  listOffers: (filters) => request("GET", "/offers", { params: filters }),
+  createOffer(payload, accessToken) {
+    return request("/offers", { method: "POST", body: JSON.stringify(payload) }, accessToken);
+  },
 
-  match: (need_id) => request("POST", "/match", { params: { need_id } }),
+  match(needId, accessToken) {
+    if (!needId) throw new Error("needId missing (match)");
+    const q = encodeURIComponent(needId);
+    // your backend uses POST /match?need_id=...
+    return request(`/match?need_id=${q}`, { method: "POST" }, accessToken);
+  },
 };
+

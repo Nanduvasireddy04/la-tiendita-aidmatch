@@ -1,81 +1,80 @@
-import { useState } from "react";
-import { api } from "../api/client";
+import { useEffect, useState } from "react";
 import SafetyBanner from "../components/SafetyBanner";
+import { supabase } from "../auth/supabaseClient";
+import { useAuth } from "../auth/authprovider.jsx";
 import { useNavigate } from "react-router-dom";
 
 export default function Signup() {
+  const { user } = useAuth();
   const nav = useNavigate();
-  const [city, setCity] = useState("Boston");
-  const [zip, setZip] = useState("02118");
-  const [role, setRole] = useState("individual");
-  const [safe, setSafe] = useState("library");
-  const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  async function submit(e) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    if (user) nav("/");
+  }, [user, nav]);
+
+  async function signInWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) setMsg(error.message);
+  }
+
+  async function emailAuth(e) {
     e.preventDefault();
-    setErr("");
-    setLoading(true);
-    try {
-      const data = await api.signup({
-        city,
-        zip_code: zip,
-        role,
-        preferred_safe_locations: safe,
-      });
+    setMsg("");
 
-      localStorage.setItem("anonymous_handle", data.anonymous_handle);
+    const signIn = await supabase.auth.signInWithPassword({ email, password });
+    if (!signIn.error) return;
 
-      // Optional: validate login
-      await api.login(data.anonymous_handle);
-
-      nav("/");
-    } catch (e) {
-      setErr(e.message);
-    } finally {
-      setLoading(false);
-    }
+    const signUp = await supabase.auth.signUp({ email, password });
+    if (signUp.error) setMsg(signUp.error.message);
   }
 
   return (
     <div>
       <SafetyBanner />
-      <h2 className="h2">Anonymous Profile</h2>
+      <h2 className="h2">Login / Signup</h2>
 
-      <form onSubmit={submit} className="card form">
-        <label>
-          City
-          <input value={city} onChange={(e) => setCity(e.target.value)} />
-        </label>
+      <div className="card">
+        {/* Email / Password */}
+        <form onSubmit={emailAuth} className="form">
+          <label>Email</label>
+          <input value={email} onChange={(e) => setEmail(e.target.value)} />
 
-        <label>
-          ZIP code
-          <input value={zip} onChange={(e) => setZip(e.target.value)} />
-        </label>
+          <label>Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-        <label>
-          Role
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="individual">individual</option>
-            <option value="group">group</option>
-          </select>
-        </label>
+          <button className="btn primary" type="submit">
+            Continue
+          </button>
 
-        <label>
-          Preferred safe meet-up type
-          <select value={safe} onChange={(e) => setSafe(e.target.value)}>
-            <option value="library">library</option>
-            <option value="community center">community center</option>
-            <option value="public place">public place</option>
-          </select>
-        </label>
+          {msg && <p className="warn">{msg}</p>}
+        </form>
 
-        <button className="btn primary" disabled={loading} type="submit">
-          {loading ? "Creating..." : "Create Profile"}
-        </button>
+        {/* OAuth buttons at BOTTOM */}
+        <div style={{ marginTop: 20 }}>
+          <p className="muted">Or continue with</p>
 
-        {err && <div className="error">{err}</div>}
-      </form>
+          <div className="stack">
+            <button className="btn outline" onClick={signInWithGoogle}>
+              <span>🔵</span> Google
+            </button>
+
+            <button className="btn outline" disabled title="Facebook coming soon">
+              <span>🔵</span> Facebook
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

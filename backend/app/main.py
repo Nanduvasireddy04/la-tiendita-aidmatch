@@ -1,6 +1,7 @@
 import random
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db import Base, engine, get_db
@@ -10,6 +11,20 @@ from .matching import find_best_offers
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="La Tiendita AidMatch 24/7")
+
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 def generate_handle(db: Session) -> str:
     # keep trying until unique

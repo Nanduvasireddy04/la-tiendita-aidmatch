@@ -1,66 +1,79 @@
-import { useEffect, useState } from "react";
-import { api } from "../api/client";
+import { useState } from "react";
 import SafetyBanner from "../components/SafetyBanner";
-import { Link } from "react-router-dom";
+import { api } from "../api/client";
+import { useAuth } from "../auth/authprovider";
 
 export default function Matches() {
+  const { user, accessToken } = useAuth();
+
+  const [needId, setNeedId] = useState(localStorage.getItem("last_need_id") || "");
+  const [msg, setMsg] = useState("");
   const [matches, setMatches] = useState([]);
-  const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(true);
 
-  const needId = localStorage.getItem("last_need_id");
+  async function findMatches() {
+    setMsg("");
+    setMatches([]);
 
-  useEffect(() => {
-    async function load() {
-      setErr("");
-      if (!needId) {
-        setErr("No need posted yet. Post a need first.");
-        setLoading(false);
-        return;
-      }
-      try {
-        const data = await api.match(needId);
-        setMatches(data);
-      } catch (e) {
-        setErr(e.message);
-      } finally {
-        setLoading(false);
-      }
+    // ✅ BLOCK if not logged in
+    if (!user || !accessToken) {
+      setMsg("❌ Please log in first.");
+      return;
     }
-    load();
-  }, [needId]);
+
+    if (!needId) {
+      setMsg("❌ Please enter a Need ID.");
+      return;
+    }
+
+    try {
+      const data = await api.match(needId, accessToken);
+      setMatches(data.matches || data || []);
+      setMsg("✅ Matches loaded.");
+    } catch (err) {
+      setMsg(`❌ ${err.message}`);
+    }
+  }
 
   return (
     <div>
       <SafetyBanner />
       <h2 className="h2">My Matches</h2>
 
-      <div className="row">
-        <Link to="/need" className="btn outline">Post Need</Link>
-        <Link to="/offer" className="btn outline">Post Offer</Link>
-      </div>
-
-      {loading && <p className="muted">Loading...</p>}
-      {err && <div className="error">{err}</div>}
-
-      {!loading && !err && matches?.length === 0 && (
-        <div className="card">
-          <p><b>No matches yet.</b></p>
-          <p className="muted">
-            Create an offer with the same city/ZIP/category as your need.
-          </p>
-        </div>
+      {!user && (
+        <p className="warn">
+          Please log in first. You must be logged in to view matches.
+        </p>
       )}
 
-      {matches?.length > 0 && (
-        <div className="stack">
-          {matches.map((m, i) => (
-            <div className="card" key={i}>
-              <div><b>Need ID:</b> {m.need_id}</div>
-              <div><b>Offer ID:</b> {m.offer_id}</div>
-              <div><b>Match score:</b> {m.match_score}</div>
-              <hr />
-              <div className="muted">{m.safety_text}</div>
+      <div className="card">
+        <div className="form">
+          <label>
+            Need ID
+            <input value={needId} onChange={(e) => setNeedId(e.target.value)} />
+          </label>
+
+          <button className="btn primary" onClick={findMatches} disabled={!user}>
+            Get Matches
+          </button>
+
+          {msg && <p className="msg">{msg}</p>}
+        </div>
+      </div>
+
+      {matches.length > 0 && (
+        <div className="card">
+          {matches.map((m, idx) => (
+            <div key={idx} style={{ padding: "8px 0", borderBottom: "1px solid #eee" }}>
+              <div><b>Need ID:</b> {m.need_id ?? m.needId}</div>
+              <div><b>Offer ID:</b> {m.offer_id ?? m.offerId}</div>
+              <div><b>Match score:</b> {m.score ?? m.match_score ?? m.matchScore}</div>
+              <p className="muted" style={{ marginTop: 6 }}>
+                When you coordinate this exchange, please use a local library or other public safe space.
+                Do not share personal home addresses.
+              </p>
+
+              {/* Chat button will come after backend + supabase chat tables */}
+              {/* <button className="btn outline">Open Chat</button> */}
             </div>
           ))}
         </div>

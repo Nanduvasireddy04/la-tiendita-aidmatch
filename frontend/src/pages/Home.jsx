@@ -1,36 +1,55 @@
-import { Link } from "react-router-dom";
+
+
 import SafetyBanner from "../components/SafetyBanner";
+import { Link } from "react-router-dom";
+import { useAuth } from "../auth/authprovider.jsx";
 
 export default function Home() {
-  const handle = localStorage.getItem("anonymous_handle");
+  const { user } = useAuth();
+
+  // Public “anonymous” display (NOT email)
+  const publicLabel = user ? `user_${user.id.slice(0, 6)}` : null;
 
   return (
     <div>
       <SafetyBanner />
 
-      <h1 className="h1">La Tiendita AidMatch</h1>
+      <h2 className="h2">La Tiendita AidMatch</h2>
+
+      {user ? (
+        <p className="msg">
+          Logged in as: <b>{publicLabel}</b>
+        </p>
+      ) : (
+        <p className="warn">
+          You are logged out. Please <Link to="/signup">log in</Link> to post needs/offers and view matches.
+        </p>
+      )}
+
       <p className="muted">
-        Anonymous mutual-aid matching for needs and offers. No personal info required.
+        Post a need or offer, then view matches.
       </p>
 
-      {!handle && (
-        <div className="card">
-          <p><b>You are not signed in.</b></p>
-          <Link to="/signup" className="btn outline">Create anonymous profile</Link>
-        </div>
-      )}
+      <div className="card">
+        <div className="stack">
+          <Link className="btn primary" to="/need" style={{ pointerEvents: user ? "auto" : "none", opacity: user ? 1 : 0.6 }}>
+            I need help
+          </Link>
 
-      {handle && (
-        <div className="card">
-          <p>Logged in as: <b>{handle}</b></p>
-          <p className="muted">Post a need or offer, then view matches.</p>
-        </div>
-      )}
+          <Link className="btn dark" to="/offer" style={{ pointerEvents: user ? "auto" : "none", opacity: user ? 1 : 0.6 }}>
+            I can offer help
+          </Link>
 
-      <div className="grid">
-        <Link to="/need" className="btn primary big">I need help</Link>
-        <Link to="/offer" className="btn success big">I can offer help</Link>
-        <Link to="/group" className="btn dark big">I'm a mutual aid group</Link>
+          <Link className="btn outline" to="/group" style={{ pointerEvents: user ? "auto" : "none", opacity: user ? 1 : 0.6 }}>
+            I’m a mutual aid group
+          </Link>
+
+          {!user && (
+            <p className="muted" style={{ marginTop: 8 }}>
+              Log in first to continue.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
