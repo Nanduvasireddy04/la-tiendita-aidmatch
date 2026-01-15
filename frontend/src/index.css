@@ -47,7 +47,7 @@ body {
   background: #fff3cd;
   border: 1px solid #ffeeba;
   border-radius: 12px;
-  margin-bottom: 12px;
+  margin-bottom: px;
 }
 
 .h1 { margin: 10px 0 6px; font-size: 28px; }
@@ -117,15 +117,11 @@ input, textarea, select {
 
 .btn.big { padding: 14px 12px; font-size: 16px; }
 
-.btn.primary { background: #0d6efd; color: white; }
 .btn.success { background: #198754; color: white; }
-.btn.dark { background: #212529; color: white; }
 
-.btn.outline {
-  background: white;
-  border-color: #cfcfcf;
-  color: #111;
-}
+.btn.primary { background: #212529; color: white; }
+.btn.dark { background: #212529; color: white; }
+.btn.outline { background: #212529; color: white;}
 
 .pill {
   border: 1px solid #cfcfcf;
@@ -205,3 +201,17 @@ input, textarea, select {
 
 .bubble.mine { margin-left: auto; }
 .bubble.theirs { margin-right: auto; }
+
+
+/* nav bar */
+.brand-logo {
+  width: 180px;
+  height: 180px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+
+.nav-brand {
+  gap: 6px;
+}

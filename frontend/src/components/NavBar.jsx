@@ -16,7 +16,15 @@ export default function NavBar() {
 
   return (
     <div className="nav">
-      <Link to="/" className="nav-brand">La Tiendita</Link>
+      <Link to="/" className="nav-brand">
+        <img src="/assets/logo.png" alt="La Tiendita AidMatch 24/7" className="brand-logo" />
+        <span className="brand-text">
+          {/* <span className="brand-title">La Tiendita</span>
+          <span className="brand-sub">AidMatch 24/7 • Chicago</span> */}
+        </span>
+      </Link>
+
+
 
       <div className="nav-links">
         <Link to="/need">Need</Link>
