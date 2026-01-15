@@ -23,6 +23,8 @@ export default function NavBar() {
         <Link to="/offer">Offer</Link>
         <Link to="/matches">Matches</Link>
         <Link to="/group">Group</Link>
+        <Link to="/chats">Chat</Link>
+
 
         {!user ? (
           <Link to="/signup" className="pill">Login</Link>

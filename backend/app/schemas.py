@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
+from datetime import datetime
 
 SAFETY_REMINDER = (
     "When you coordinate this exchange, please use a local library or other public safe space. "
@@ -48,6 +49,7 @@ class OfferOut(OfferCreate):
 from pydantic import BaseModel
 
 class MatchResult(BaseModel):
+    offer_id: int
     match_score: float
 
     offer_category: str
@@ -57,6 +59,7 @@ class MatchResult(BaseModel):
     offer_zip_code: str
 
     safety_text: str = SAFETY_REMINDER
+    donor_public_handle: str | None = None
 
 class MatchResponse(BaseModel):
     results: List[MatchResult]
@@ -70,3 +73,39 @@ class ZipPlace(BaseModel):
 class ZipLookupResponse(BaseModel):
     zip_code: str
     places: List[ZipPlace]
+
+# this is a chatbox codeblock
+
+class ConversationCreate(BaseModel):
+    need_id: int
+    offer_id: int
+
+class ConversationOut(BaseModel):
+    id: int
+    need_id: int
+    offer_id: int
+    status: str
+    created_at: datetime
+
+    # helpful for UI
+    recipient_public_handle: str
+    donor_public_handle: str
+
+    class Config:
+        from_attributes = True
+
+
+class MessageCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=2000)
+
+class MessageOut(BaseModel):
+    id: int
+    conversation_id: int
+    body: str
+    created_at: datetime
+    sender_user_id: int
+
+    sender_public_handle: str
+
+    class Config:
+        from_attributes = True

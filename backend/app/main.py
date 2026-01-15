@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi import FastAPI, Depends, HTTPException, Header, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -13,8 +13,13 @@ from .verify_supabase import verify_token
 
 import re
 import requests
-from fastapi import HTTPException
+
 from . import schemas
+import json
+from sqlalchemy import and_
+from datetime import datetime
+from app.db import SessionLocal
+from app import models
 
 
 Base.metadata.create_all(bind=engine)
@@ -69,6 +74,55 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# online/offline presence 
+class ConnectionManager:
+    def __init__(self):
+        # conversation_id -> { websocket: user_dict }
+        self.rooms: dict[int, dict[WebSocket, dict]] = {}
+
+    async def connect(self, conversation_id: int, websocket: WebSocket, user: dict):
+        await websocket.accept()
+        self.rooms.setdefault(conversation_id, {})
+        self.rooms[conversation_id][websocket] = user
+
+    def disconnect(self, conversation_id: int, websocket: WebSocket):
+        if conversation_id in self.rooms and websocket in self.rooms[conversation_id]:
+            del self.rooms[conversation_id][websocket]
+            if not self.rooms[conversation_id]:
+                del self.rooms[conversation_id]
+
+    def presence_list(self, conversation_id: int):
+        # unique users online
+        users = self.rooms.get(conversation_id, {})
+        seen = {}
+        for _ws, u in users.items():
+            seen[u["id"]] = u
+        return list(seen.values())
+
+    async def broadcast(self, conversation_id: int, payload: dict):
+        
+            users = self.rooms.get(conversation_id, {})
+
+            # ✅ IMPORTANT: iterate over a COPY, not the live dict view
+            targets = list(users.keys())
+
+            dead = []
+            for ws in targets:
+                try:
+                    await ws.send_text(json.dumps(payload))
+                except Exception:
+                    dead.append(ws)
+
+            # ✅ remove after iteration
+            for ws in dead:
+                self.disconnect(conversation_id, ws)
+
+
+
+manager = ConnectionManager()
+
+
 
 def _make_public_handle(uid: str) -> str:
     # stable-ish anonymous-looking handle
@@ -228,12 +282,14 @@ def _run_match(need_id: int, db: Session) -> list[schemas.MatchResult]:
         results.append(
 
     schemas.MatchResult(
+        offer_id=offer.id,
         match_score=float(score),
         offer_category=offer.category,
         offer_description=offer.description,
         offer_quantity=offer.quantity,
         offer_city=offer.city,
         offer_zip_code=offer.zip_code,
+        donor_public_handle=offer.user.public_handle if hasattr(offer, "user") else None,
             )
         )
 
@@ -248,3 +304,302 @@ def match_get(need_id: int, db: Session = Depends(get_db)):
 @app.post("/match", response_model=list[schemas.MatchResult])
 def match_post(need_id: int, db: Session = Depends(get_db)):
     return _run_match(need_id, db)
+
+
+
+# this is chat box main methods
+
+
+@app.post("/conversations", response_model=schemas.ConversationOut)
+def create_or_get_conversation(
+    payload: schemas.ConversationCreate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    # 1) ensure need belongs to current user (recipient)
+    need = db.query(models.Need).filter(models.Need.id == payload.need_id).first()
+    if not need:
+        raise HTTPException(404, "Need not found")
+    if need.user_id != user.id:
+        raise HTTPException(403, "You can only chat for your own Need")
+
+    # 2) load offer and identify donor
+    offer = db.query(models.Offer).filter(models.Offer.id == payload.offer_id).first()
+    if not offer:
+        raise HTTPException(404, "Offer not found")
+
+    recipient_id = user.id
+    donor_id = offer.user_id
+
+    # 3) reuse existing conversation for that need+offer+pair
+    convo = (
+        db.query(models.Conversation)
+        .filter(
+            models.Conversation.need_id == payload.need_id,
+            models.Conversation.offer_id == payload.offer_id,
+            models.Conversation.recipient_user_id == recipient_id,
+            models.Conversation.donor_user_id == donor_id,
+        )
+        .first()
+    )
+
+    if not convo:
+        convo = models.Conversation(
+            need_id=payload.need_id,
+            offer_id=payload.offer_id,
+            recipient_user_id=recipient_id,
+            donor_user_id=donor_id,
+            status="open",
+        )
+        db.add(convo)
+        db.commit()
+        db.refresh(convo)
+
+    recipient = db.query(models.User).filter(models.User.id == recipient_id).first()
+    donor = db.query(models.User).filter(models.User.id == donor_id).first()
+
+    return schemas.ConversationOut(
+        id=convo.id,
+        need_id=convo.need_id,
+        offer_id=convo.offer_id,
+        status=convo.status,
+        created_at=convo.created_at,
+        recipient_public_handle=recipient.public_handle,
+        donor_public_handle=donor.public_handle,
+    )
+
+
+@app.get("/conversations/{conversation_id}/messages", response_model=list[schemas.MessageOut])
+def list_messages(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    convo = db.query(models.Conversation).filter(models.Conversation.id == conversation_id).first()
+    if not convo:
+        raise HTTPException(404, "Conversation not found")
+
+    if user.id not in (convo.recipient_user_id, convo.donor_user_id):
+        raise HTTPException(403, "Not allowed")
+
+    msgs = (
+        db.query(models.Message)
+        .filter(models.Message.conversation_id == conversation_id)
+        .order_by(models.Message.id.asc())
+        .all()
+    )
+
+    # map sender handle
+    user_map = {
+        u.id: u.public_handle
+        for u in db.query(models.User).filter(models.User.id.in_([m.sender_user_id for m in msgs])).all()
+    }
+
+    return [
+        schemas.MessageOut(
+            id=m.id,
+            conversation_id=m.conversation_id,
+            body=m.body,
+            created_at=m.created_at,
+            sender_user_id=m.sender_user_id,
+            sender_public_handle=user_map.get(m.sender_user_id, "user_unknown"),
+        )
+        for m in msgs
+    ]
+
+
+@app.post("/conversations/{conversation_id}/messages", response_model=schemas.MessageOut)
+def send_message(
+    conversation_id: int,
+    payload: schemas.MessageCreate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    convo = db.query(models.Conversation).filter(models.Conversation.id == conversation_id).first()
+    if not convo:
+        raise HTTPException(404, "Conversation not found")
+
+    if convo.status != "open":
+        raise HTTPException(400, "Conversation is closed")
+
+    if user.id not in (convo.recipient_user_id, convo.donor_user_id):
+        raise HTTPException(403, "Not allowed")
+
+    msg = models.Message(
+        conversation_id=conversation_id,
+        sender_user_id=user.id,
+        body=payload.body.strip(),
+    )
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+
+    return schemas.MessageOut(
+        id=msg.id,
+        conversation_id=msg.conversation_id,
+        body=msg.body,
+        created_at=msg.created_at,
+        sender_user_id=msg.sender_user_id,
+        sender_public_handle=user.public_handle,
+    )
+
+
+@app.get("/conversations", response_model=list[schemas.ConversationOut])
+def list_conversations(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    convos = (
+        db.query(models.Conversation)
+        .filter(
+            (models.Conversation.recipient_user_id == user.id)
+            | (models.Conversation.donor_user_id == user.id)
+        )
+        .order_by(models.Conversation.id.desc())
+        .all()
+    )
+
+    # preload handles
+    user_ids = set()
+    for c in convos:
+        user_ids.add(c.recipient_user_id)
+        user_ids.add(c.donor_user_id)
+
+    users = db.query(models.User).filter(models.User.id.in_(list(user_ids))).all()
+    handle = {u.id: u.public_handle for u in users}
+
+    return [
+        schemas.ConversationOut(
+            id=c.id,
+            need_id=c.need_id,
+            offer_id=c.offer_id,
+            status=c.status,
+            created_at=c.created_at,
+            recipient_public_handle=handle.get(c.recipient_user_id, "user_unknown"),
+            donor_public_handle=handle.get(c.donor_user_id, "user_unknown"),
+        )
+        for c in convos
+    ]
+
+# ## on;ine/offline presence 
+
+# @app.websocket("/ws/conversations/{conversation_id}")
+# async def ws_conversation(websocket: WebSocket, conversation_id: int):
+#     # ✅ Accept first so browser gets proper close frames (no 1006)
+#     # await websocket.accept()
+
+#     db = None
+#     try:
+#         token = websocket.query_params.get("token")
+#         if not token:
+#             await websocket.close(code=4401)
+#             return
+
+#         # Verify Supabase JWT
+#         try:
+#             claims = verify_token(token)
+#         except Exception:
+#             await websocket.close(code=4401)
+#             return
+
+#         supabase_uid = claims.get("sub")
+#         if not supabase_uid:
+#             await websocket.close(code=4401)
+#             return
+
+#         # Manual DB session (Depends doesn't work in WS)
+#         db = SessionLocal()
+
+#         user = db.query(models.User).filter(models.User.supabase_uid == supabase_uid).first()
+#         if not user:
+#             user = models.User(
+#                 supabase_uid=supabase_uid,
+#                 email=claims.get("email"),
+#                 public_handle=_make_public_handle(supabase_uid),
+#                 role="individual",
+#                 preferred_safe_locations="library",
+#             )
+#             db.add(user)
+#             db.commit()
+#             db.refresh(user)
+
+#         convo = db.query(models.Conversation).filter(models.Conversation.id == conversation_id).first()
+#         if not convo:
+#             await websocket.close(code=4404)
+#             return
+
+#         # Only participants can connect
+#         if user.id not in (convo.recipient_user_id, convo.donor_user_id):
+#             await websocket.close(code=4403)
+#             return
+
+#         # Connect and broadcast presence
+#         await manager.connect(
+#             conversation_id,
+#             websocket,
+#             {"id": user.id, "public_handle": user.public_handle},
+#         )
+#         await manager.broadcast(conversation_id, {
+#             "type": "presence",
+#             "online": manager.presence_list(conversation_id),
+#         })
+
+#         # Main receive loop
+#         while True:
+#             raw = await websocket.receive_text()
+#             data = json.loads(raw)
+
+#             if data.get("type") == "ping":
+#                 await websocket.send_text(json.dumps({"type": "pong"}))
+#                 continue
+
+#             if data.get("type") == "message":
+#                 body = (data.get("body") or "").strip()
+#                 if not body:
+#                     continue
+
+#                 msg = models.Message(
+#                     conversation_id=conversation_id,
+#                     sender_user_id=user.id,
+#                     body=body,
+#                 )
+#                 db.add(msg)
+#                 db.commit()
+#                 db.refresh(msg)
+
+#                 await manager.broadcast(conversation_id, {
+#                     "type": "message",
+#                     "message": {
+#                         "id": msg.id,
+#                         "conversation_id": msg.conversation_id,
+#                         "body": msg.body,
+#                         "created_at": msg.created_at.isoformat() if msg.created_at else datetime.utcnow().isoformat(),
+#                         "sender_user_id": msg.sender_user_id,
+#                         "sender_public_handle": user.public_handle,
+#                     }
+#                 })
+
+#     except WebSocketDisconnect:
+#         # Client closed
+#         pass
+
+#     except Exception as e:
+#         print("WS CRASH:", repr(e))
+#         try:
+#             await websocket.close(code=1011)
+#         except Exception:
+#             pass
+
+#     finally:
+#         # Clean up + presence update
+#         try:
+#             manager.disconnect(conversation_id, websocket)
+#             await manager.broadcast(conversation_id, {
+#                 "type": "presence",
+#                 "online": manager.presence_list(conversation_id),
+#             })
+#         except Exception:
+#             pass
+
+#         if db is not None:
+#             db.close()

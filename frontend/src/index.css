@@ -163,3 +163,45 @@ input, textarea, select {
   color: #b00020;
   font-size: 14px;
 }
+
+
+/* chat ui/ux */
+
+.chat-shell { padding: 12px; }
+.chat-messages {
+  height: 360px;
+  overflow: auto;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 10px;
+  background: #fafafa;
+}
+.chat-input {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.chat-input input {
+  flex: 1;
+}
+
+.bubble {
+  max-width: 85%;
+  padding: 10px;
+  border-radius: 14px;
+  margin: 8px 0;
+  border: 1px solid #e8e8e8;
+  background: white;
+}
+.bubble.mine { margin-left: auto; }
+.bubble.theirs { margin-right: auto; }
+
+.bubble-meta {
+  font-size: 12px;
+  opacity: 0.65;
+  margin-bottom: 4px;
+}
+
+
+.bubble.mine { margin-left: auto; }
+.bubble.theirs { margin-right: auto; }

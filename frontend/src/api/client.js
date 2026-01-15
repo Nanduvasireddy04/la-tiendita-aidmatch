@@ -1,44 +1,41 @@
-
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const BASE = import.meta.env.VITE_API_BASE_URL;
 
 async function request(path, options = {}, accessToken) {
-  const url = `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+  const url = `${BASE}${path}`;
 
   const headers = {
     "Content-Type": "application/json",
     ...(options.headers || {}),
   };
 
-  // Attach Supabase auth token to backend
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
 
   const res = await fetch(url, {
     ...options,
     headers,
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `HTTP ${res.status}`);
+  // try parse json; if not json, fallback
+  let data = null;
+  const text = await res.text();
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
   }
 
-  const ct = res.headers.get("content-type") || "";
-  if (ct.includes("application/json")) return res.json();
-  return res.text();
+  if (!res.ok) {
+    const detail = data?.detail ? JSON.stringify(data) : (data?.message || data || "Request failed");
+    throw new Error(detail);
+  }
+
+  return data;
 }
 
 export const api = {
-  listNeeds(filters = {}, accessToken) {
-    const params = new URLSearchParams();
-    if (filters.city) params.append("city", filters.city);
-    if (filters.zip_code) params.append("zip_code", filters.zip_code);
-    if (filters.category) params.append("category", filters.category);
-
-    const query = params.toString();
-    return request(`/needs${query ? `?${query}` : ""}`, { method: "GET" }, accessToken);
-  },
-
+  // existing
   createNeed(payload, accessToken) {
     return request("/needs", { method: "POST", body: JSON.stringify(payload) }, accessToken);
   },
@@ -48,10 +45,32 @@ export const api = {
   },
 
   match(needId, accessToken) {
-    if (!needId) throw new Error("needId missing (match)");
-    const q = encodeURIComponent(needId);
-    // your backend uses POST /match?need_id=...
-    return request(`/match?need_id=${q}`, { method: "POST" }, accessToken);
+    return request(`/match?need_id=${needId}`, { method: "POST" }, accessToken);
+  },
+
+  listNeeds(params, accessToken) {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/needs?${qs}`, { method: "GET" }, accessToken);
+  },
+
+  // ✅ chat
+  createConversation(payload, accessToken) {
+    return request("/conversations", { method: "POST", body: JSON.stringify(payload) }, accessToken);
+  },
+
+  listMessages(conversationId, accessToken) {
+    return request(`/conversations/${conversationId}/messages`, { method: "GET" }, accessToken);
+  },
+
+  sendMessage(conversationId, payload, accessToken) {
+    return request(
+      `/conversations/${conversationId}/messages`,
+      { method: "POST", body: JSON.stringify(payload) },
+      accessToken
+    );
+  },
+
+  listConversations(accessToken) {
+    return request("/conversations", { method: "GET" }, accessToken);
   },
 };
-

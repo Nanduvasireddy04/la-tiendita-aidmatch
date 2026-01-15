@@ -2,12 +2,29 @@ import { useEffect, useState } from "react";
 import SafetyBanner from "../components/SafetyBanner";
 import { api } from "../api/client";
 import { useAuth } from "../auth/authprovider";
+import { useNavigate } from "react-router-dom";
 
 export default function Matches() {
   const { user, accessToken } = useAuth();
 
   const [msg, setMsg] = useState("");
   const [matches, setMatches] = useState([]);
+  const nav = useNavigate();
+
+  async function openChat(offerId) {
+  setMsg("");
+  try {
+    const needId = localStorage.getItem("last_need_id");
+    if (!needId) throw new Error("Post a Need first.");
+    const convo = await api.createConversation(
+      { need_id: Number(needId), offer_id: Number(offerId) },
+      accessToken
+    );
+    nav(`/chat/${convo.id}`);
+  } catch (e) {
+    setMsg(`❌ ${e.message}`);
+  }
+}
 
   async function findMatches() {
     setMsg("");
@@ -77,6 +94,11 @@ export default function Matches() {
               <div className="muted" style={{ marginTop: 6 }}>
                 <b>Description:</b> {m.offer_description ?? m.description ?? "—"}
               </div>
+
+              <button className="btn success" onClick={() => openChat(m.offer_id)}>
+                Chat / Coordinate
+              </button>
+
 
               <p className="muted" style={{ marginTop: 8 }}>
                 When you coordinate this exchange, please use a local library or other public safe space.

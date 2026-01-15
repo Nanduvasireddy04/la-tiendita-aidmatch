@@ -75,3 +75,38 @@ class Group(Base):
     region = Column(String(100), nullable=True)
     group_profile = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+# models.py
+
+from sqlalchemy import Boolean  # if you want, optional
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    need_id = Column(Integer, ForeignKey("needs.id"), nullable=False, index=True)
+    offer_id = Column(Integer, ForeignKey("offers.id"), nullable=False, index=True)
+
+    recipient_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    donor_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    status = Column(String(20), nullable=False, default="open")  # open/closed
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Optional (nice to have)
+    # messages = relationship("Message", back_populates="conversation", cascade="all,delete")
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=False, index=True)
+    sender_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    body = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Optional
+    # conversation = relationship("Conversation", back_populates="messages")
+
