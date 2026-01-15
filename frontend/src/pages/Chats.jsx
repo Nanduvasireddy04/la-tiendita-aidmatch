@@ -16,7 +16,9 @@ export default function Chats() {
     try {
       const data = await api.listConversations(accessToken);
       setItems(Array.isArray(data) ? data : []);
-      if (!data?.length) setMsg("No chats yet. Open Matches and click Chat / Coordinate.");
+      if (!data?.length) {
+        setMsg("No chats yet. Open Matches and click Chat / Coordinate.");
+      }
     } catch (e) {
       setMsg(`❌ ${e.message}`);
     }
@@ -49,25 +51,40 @@ export default function Chats() {
         {msg && <p className="muted" style={{ marginTop: 10 }}>{msg}</p>}
       </div>
 
-      {items.map((c) => (
-        <div key={c.id} className="card">
-          <div className="row space">
-            <div><b>Conversation #{c.id}</b></div>
-            <span className="pill-small">{c.status ?? "open"}</span>
-          </div>
+      {items.map((c) => {
+        // determine the "other" participant
+        const otherUser =
+          c.recipient_user_id === user?.id
+            ? c.donor_public_handle
+            : c.recipient_public_handle;
 
-          <div className="muted" style={{ marginTop: 6 }}>
-            Recipient: <b>{c.recipient_public_handle ?? "—"}</b><br />
-            Donor: <b>{c.donor_public_handle ?? "—"}</b>
-          </div>
+        return (
+          <div key={c.id} className="card">
+            <div className="row space">
+              <div><b>Chat</b></div>
+              <span className="pill-small">{c.status ?? "open"}</span>
+            </div>
 
-          <div className="row" style={{ marginTop: 12 }}>
-            <Link className="btn success" to={`/chat/${c.id}`}>
-              Open Chat
-            </Link>
+            <div className="muted" style={{ marginTop: 6 }}>
+              <div>
+                <b>Conversation with:</b> {otherUser ?? "—"}
+              </div>
+
+              {c.offer_description && (
+                <div style={{ marginTop: 4 }}>
+                  <b>Offer:</b> {c.offer_description}
+                </div>
+              )}
+            </div>
+
+            <div className="row" style={{ marginTop: 12 }}>
+              <Link className="btn success" to={`/chat/${c.id}`}>
+                Open Chat
+              </Link>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import Offer from "./pages/Offer";
 import Matches from "./pages/Matches";
 import GroupDashboard from "./pages/GroupDashboard";
 import Chat from "./pages/Chat";
+import Chats from "./pages/Chats.jsx";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/group" element={<GroupDashboard />} />
           <Route path="/chat/:conversationId" element={<Chat />} />
           <Route path="/chat" element={<Chat />} />
+          <Route path="/chats" element={<Chats />} />
 
         </Routes>
       </div>
