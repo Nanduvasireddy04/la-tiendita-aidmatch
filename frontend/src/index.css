@@ -215,3 +215,122 @@ input, textarea, select {
 .nav-brand {
   gap: 6px;
 }
+
+
+/* Group dashboard item cards */
+.item-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+  background: #ffffff;
+  display: grid;
+  gap: 6px;
+}
+
+.item-card:hover {
+  background: #fafafa;
+}
+
+.item-row {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.item-label {
+  font-weight: 600;
+  color: #333;
+}
+
+.item-desc {
+  margin-top: 6px;
+  font-size: 14px;
+  border-top: 1px solid #eee;
+  color: #222;
+  line-height: 1.5;  
+}
+
+.item-footer {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Reusable list cards (Needs / Offers / Matches) */
+.list {
+  display: grid;
+  gap: 12px;
+}
+
+.item-card {
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.item-card:hover {
+  background: #fafafa;
+}
+
+.item-title {
+  font-weight: 800;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.item-meta {
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.item-meta b {
+  font-weight: 700;
+}
+
+.item-desc {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+  color: #555;
+  line-height: 1.4;
+}
+
+.item-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid #ddd;
+  background: #f2f2f2;
+}
+
+.badge.ok {
+  border-color: #b7e4c7;
+  background: #d8f3dc;
+  color: #065f46;
+}
+
+.badge.warn {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.badge.danger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}

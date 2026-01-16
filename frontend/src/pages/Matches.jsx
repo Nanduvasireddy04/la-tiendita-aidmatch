@@ -4,6 +4,16 @@ import { api } from "../api/client";
 import { useAuth } from "../auth/authprovider";
 import { useNavigate } from "react-router-dom";
 
+function scoreBadgeClass(score) {
+  const s = Number(score);
+  if (Number.isFinite(s)) {
+    if (s >= 80) return "badge ok";
+    if (s >= 50) return "badge warn";
+    return "badge danger";
+  }
+  return "badge";
+}
+
 export default function Matches() {
   const { user, accessToken } = useAuth();
 
@@ -12,31 +22,31 @@ export default function Matches() {
   const nav = useNavigate();
 
   async function openChat(offerId) {
-  setMsg("");
-  try {
-    const needId = localStorage.getItem("last_need_id");
-    if (!needId) throw new Error("Post a Need first.");
-    const convo = await api.createConversation(
-      { need_id: Number(needId), offer_id: Number(offerId) },
-      accessToken
-    );
-    nav(`/chat/${convo.id}`);
-  } catch (e) {
-    setMsg(`❌ ${e.message}`);
+    setMsg("");
+    try {
+      const needId = localStorage.getItem("last_need_id");
+      if (!needId) throw new Error("Post a Need first.");
+
+      const convo = await api.createConversation(
+        { need_id: Number(needId), offer_id: Number(offerId) },
+        accessToken
+      );
+
+      nav(`/chat/${convo.id}`);
+    } catch (e) {
+      setMsg(`❌ ${e.message}`);
+    }
   }
-}
 
   async function findMatches() {
     setMsg("");
     setMatches([]);
 
-    // ✅ BLOCK if not logged in
     if (!user || !accessToken) {
       setMsg("❌ Please log in first.");
       return;
     }
 
-    // ✅ AUTO: use stored need id (no user input)
     const needId = localStorage.getItem("last_need_id");
     if (!needId) {
       setMsg("❌ Please post a Need first, then come back to Matches.");
@@ -46,14 +56,13 @@ export default function Matches() {
     try {
       const data = await api.match(needId, accessToken);
       const list = data.matches || data || [];
-      setMatches(list);
-      setMsg(list.length ? "✅ Matches loaded . . ." : "⚠️ No matches yet. Try posting an Offer.");
+      setMatches(Array.isArray(list) ? list : []);
+      setMsg(list.length ? "✅ Matches loaded." : "⚠️ No matches yet. Try posting an Offer.");
     } catch (err) {
       setMsg(`❌ ${err.message}`);
     }
   }
 
-  // ✅ Auto-load when user opens Matches page
   useEffect(() => {
     if (user && accessToken) findMatches();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -71,41 +80,69 @@ export default function Matches() {
       )}
 
       <div className="card">
-        <div className="form">
+        <div className="row space">
+          <div className="muted">Matches for your most recently posted Need</div>
           <button className="btn primary" onClick={findMatches} disabled={!user}>
-            Refresh Matches
+            Refresh
           </button>
-
-          {msg && <p className="msg">{msg}</p>}
         </div>
+        {msg && <p className="msg" style={{ marginTop: 10 }}>{msg}</p>}
       </div>
 
       {matches.length > 0 && (
         <div className="card">
-          {matches.map((m, idx) => (
-            <div key={idx} style={{ padding: "12px 0", borderBottom: "1px solid #eee" }}>
-              <div><b>Match score:</b> {m.match_score ?? m.score ?? m.matchScore}</div>
+          <div className="list">
+            {matches.map((m, idx) => {
+              const score = m.match_score ?? m.score ?? m.matchScore;
+              const category = m.offer_category ?? m.category ?? "—";
+              const qty = m.offer_quantity ?? m.quantity ?? "—";
+              const city = m.offer_city ?? m.city ?? "—";
+              const zip = m.offer_zip_code ?? m.zip_code ?? "—";
+              const desc = m.offer_description ?? m.description ?? "—";
+              const offerId = m.offer_id ?? m.offerId ?? m.id;
 
-              <div style={{ marginTop: 6 }}><b>Category:</b> {m.offer_category ?? m.category ?? "—"}</div>
-              <div><b>Quantity:</b> {m.offer_quantity ?? m.quantity ?? "—"}</div>
-              <div><b>City:</b> {m.offer_city ?? m.city ?? "—"}</div>
-              <div><b>Zip code:</b> {m.offer_zip_code ?? m.zip_code ?? "—"}</div>
+              return (
+                <div key={offerId ?? idx} className="item-card">
+                  {/* Compact header row */}
+                  <div className="row space" style={{ alignItems: "flex-start" }}>
+                    <div className="row" style={{ gap: 8 }}>
+                      <span className={scoreBadgeClass(score)}>
+                        {Number.isFinite(Number(score)) ? `SCORE ${Number(score)}` : "SCORE —"}
+                      </span>
+                      <div style={{ fontWeight: 800 }}>
+                        {String(category).toUpperCase()}
+                      </div>
+                      <span className="pill-small">Qty: {qty}</span>
+                    </div>
 
-              <div className="muted" style={{ marginTop: 6 }}>
-                <b>Description:</b> {m.offer_description ?? m.description ?? "—"}
-              </div>
+                    <div className="muted" style={{ fontSize: 13 }}>
+                      {city} ({zip})
+                    </div>
+                  </div>
 
-              <button className="btn success" onClick={() => openChat(m.offer_id)}>
-                Chat / Coordinate
-              </button>
+                  <div className="item-desc">
+                    {desc}
+                  </div>
 
+                  <div className="item-actions">
+                    <button
+                      className="btn success"
+                      onClick={() => openChat(offerId)}
+                      disabled={!offerId}
+                      title={!offerId ? "Missing offer_id in match response" : ""}
+                    >
+                      Chat / Coordinate
+                    </button>
+                  </div>
 
-              <p className="muted" style={{ marginTop: 8 }}>
-                When you coordinate this exchange, please use a local library or other public safe space.
-                Do not share personal home addresses.
-              </p>
-            </div>
-          ))}
+                  <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>
+                    Safety reminder: Coordinate in a public safe place (library/community center).
+                    Do not share home addresses.
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

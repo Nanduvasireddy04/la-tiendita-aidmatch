@@ -1,19 +1,16 @@
 from dotenv import load_dotenv
 load_dotenv()
-
 from fastapi import FastAPI, Depends, HTTPException, Header, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-
 from .db import Base, engine, get_db
 from . import models, schemas
 from .matching import find_best_offers
 from .verify_supabase import verify_token
-
 import re
 import requests
-
+from sqlalchemy import func
 from . import schemas
 import json
 from sqlalchemy import and_
@@ -215,7 +212,8 @@ def list_needs(
 ):
     q = db.query(models.Need)
     if city:
-        q = q.filter(models.Need.city == city)
+        city_clean = city.strip().lower()
+        q = q.filter(func.lower(func.trim(models.Need.city)) == city_clean)
     if zip_code:
         q = q.filter(models.Need.zip_code == zip_code)
     if category:
@@ -251,7 +249,8 @@ def list_offers(
 ):
     q = db.query(models.Offer)
     if city:
-        q = q.filter(models.Offer.city == city)
+        city_clean = city.strip().lower()
+        q = q.filter(func.lower(func.trim(models.Offer.city)) == city_clean)
     if zip_code:
         q = q.filter(models.Offer.zip_code == zip_code)
     if category:
