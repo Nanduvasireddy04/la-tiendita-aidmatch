@@ -17,6 +17,7 @@ from sqlalchemy import and_
 from datetime import datetime
 from app.db import SessionLocal
 from app import models
+import os
 
 
 # Base.metadata.create_all(bind=engine)
@@ -71,13 +72,32 @@ def lookup_zip(zip_code: str):
 
 
 # CORS (fixes OPTIONS preflight)
+
+frontend_origin = os.getenv("FRONTEND_ORIGIN")
+
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+if frontend_origin:
+    origins.append(frontend_origin)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+# _________________________________________________________________________________
+
 
 # online/offline presence 
 class ConnectionManager:
