@@ -53,10 +53,17 @@ export default function Chats() {
 
       {items.map((c) => {
         // determine the "other" participant
+        const myHandle = user ? `user_${user.id.slice(0, 6)}` : null;
+
         const otherUser =
-          c.recipient_user_id === user?.id
+          c.recipient_public_handle === myHandle
             ? c.donor_public_handle
             : c.recipient_public_handle;
+
+        // const otherUser =
+        //   c.recipient_user_id === user?.id
+        //     ? c.donor_public_handle
+        //     : c.recipient_public_handle;
 
         return (
           <div key={c.id} className="card">
@@ -69,6 +76,12 @@ export default function Chats() {
               <div>
                 <b>Conversation with:</b> {otherUser ?? "—"}
               </div>
+
+              {c.need_description && (
+                <div style={{ marginTop: 4 }}>
+                  <b>Need:</b> {c.need_description}
+                </div>
+              )}
 
               {c.offer_description && (
                 <div style={{ marginTop: 4 }}>

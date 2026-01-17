@@ -104,7 +104,10 @@ class MessageOut(BaseModel):
     body: str
     created_at: datetime
     sender_user_id: int
-
+    recipient_public_handle: str
+    donor_public_handle: str
+    need_description: str | None = None
+    offer_description: str | None = None
     sender_public_handle: str
 
     class Config:

@@ -392,6 +392,8 @@ def create_or_get_conversation(
         created_at=convo.created_at,
         recipient_public_handle=recipient.public_handle,
         donor_public_handle=donor.public_handle,
+        need_description=need.description,
+        offer_description=offer.description,    
     )
 
 
@@ -494,6 +496,17 @@ def list_conversations(
     users = db.query(models.User).filter(models.User.id.in_(list(user_ids))).all()
     handle = {u.id: u.public_handle for u in users}
 
+    # ✅ preload need + offer descriptions for these conversations
+    need_ids = [c.need_id for c in convos]
+    offer_ids = [c.offer_id for c in convos]
+
+    needs = db.query(models.Need).filter(models.Need.id.in_(need_ids)).all() if need_ids else []
+    offers = db.query(models.Offer).filter(models.Offer.id.in_(offer_ids)).all() if offer_ids else []
+
+    need_map = {n.id: n.description for n in needs}
+    offer_map = {o.id: o.description for o in offers}
+
+
     return [
         schemas.ConversationOut(
             id=c.id,
@@ -503,6 +516,8 @@ def list_conversations(
             created_at=c.created_at,
             recipient_public_handle=handle.get(c.recipient_user_id, "user_unknown"),
             donor_public_handle=handle.get(c.donor_user_id, "user_unknown"),
+            eed_description=need_map.get(c.need_id),
+            offer_description=offer_map.get(c.offer_id),
         )
         for c in convos
     ]

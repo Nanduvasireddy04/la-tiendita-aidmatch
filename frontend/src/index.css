@@ -18,7 +18,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 14px;
   padding: 10px 0;
 }
 
@@ -28,11 +28,20 @@ body {
   color: #111;
 }
 
-.nav-links {
+/* .nav-links {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+} */
+
+.nav-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
 }
 
 .nav-links a {
@@ -47,7 +56,7 @@ body {
   background: #fff3cd;
   border: 1px solid #ffeeba;
   border-radius: 12px;
-  margin-bottom: px;
+  margin: 8px 0 10px;
 }
 
 .h1 { margin: 10px 0 6px; font-size: 28px; }
@@ -204,11 +213,19 @@ input, textarea, select {
 
 
 /* nav bar */
-.brand-logo {
+/* .brand-logo {
   width: 180px;
   height: 180px;
   border-radius: 10px;
   object-fit: cover;
+} */
+
+.brand-logo {
+  width: 140px;
+  height: auto;
+  border-radius: 10px;
+  object-fit: contain;
+  display: block;
 }
 
 
@@ -333,4 +350,20 @@ input, textarea, select {
   border-color: #fecaca;
   background: #fef2f2;
   color: #991b1b;
+}
+
+@media (max-width: 520px) {
+  .nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .nav-links {
+    flex-wrap: wrap; /* allow wrap only on small screens */
+  }
+
+  .brand-logo {
+    width: 160px;
+  }
 }
