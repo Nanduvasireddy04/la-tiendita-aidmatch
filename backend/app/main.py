@@ -522,7 +522,7 @@ def list_conversations(
             created_at=c.created_at,
             recipient_public_handle=handle.get(c.recipient_user_id, "user_unknown"),
             donor_public_handle=handle.get(c.donor_user_id, "user_unknown"),
-            eed_description=need_map.get(c.need_id),
+            need_description=need_map.get(c.need_id),
             offer_description=offer_map.get(c.offer_id),
         )
         for c in convos
