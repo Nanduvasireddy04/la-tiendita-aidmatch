@@ -8,7 +8,7 @@ import Matches from "./pages/Matches";
 import GroupDashboard from "./pages/GroupDashboard";
 import Chat from "./pages/Chat";
 import Chats from "./pages/Chats.jsx";
-import AuthCallback from "./pages/AuthCallback";
+import AuthCallback from "./auth/AuthCallback";
 
 
 export default function App() {
