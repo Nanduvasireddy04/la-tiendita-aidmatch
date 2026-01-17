@@ -19,7 +19,7 @@ from app.db import SessionLocal
 from app import models
 
 
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="La Tiendita AidMatch 24/7")
 
