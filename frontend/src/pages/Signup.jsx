@@ -33,7 +33,8 @@ export default function Signup() {
   async function signInWithGoogle() {
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      // options: { redirectTo: window.location.origin },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
     if (error) setMsg(error.message);
   }

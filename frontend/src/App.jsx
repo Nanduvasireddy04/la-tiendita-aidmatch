@@ -8,6 +8,8 @@ import Matches from "./pages/Matches";
 import GroupDashboard from "./pages/GroupDashboard";
 import Chat from "./pages/Chat";
 import Chats from "./pages/Chats.jsx";
+import AuthCallback from "./pages/AuthCallback";
+
 
 export default function App() {
   return (
@@ -24,6 +26,8 @@ export default function App() {
           <Route path="/chat/:conversationId" element={<Chat />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/chats" element={<Chats />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+
 
         </Routes>
       </div>
