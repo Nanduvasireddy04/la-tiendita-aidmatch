@@ -42,17 +42,20 @@ export default function GroupDashboard() {
       setZipStatus("Checking ZIP...");
 
       // ✅ public ZIP verification API
-      const res = await fetch(`https://api.zippopotam.us/us/${z}`);
-      if (!res.ok) throw new Error("ZIP not found");
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/geo/zip/${z}`
+      );
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "ZIP lookup failed");
+      }
 
       const data = await res.json();
-
-      const places = (data.places || []).map((p) => ({
-        city: p["place name"],
-        state: p["state abbreviation"],
-      }));
+      const places = data.places || [];
 
       setZipPlaces(places);
+
 
       if (places.length === 1) {
         setCity(places[0].city);
