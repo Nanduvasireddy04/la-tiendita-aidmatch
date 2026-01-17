@@ -417,11 +417,17 @@ def list_messages(
         .all()
     )
 
-    # map sender handle
-    user_map = {
-        u.id: u.public_handle
-        for u in db.query(models.User).filter(models.User.id.in_([m.sender_user_id for m in msgs])).all()
-    }
+    
+    # map sender handle (safe)
+    sender_ids = [m.sender_user_id for m in msgs]
+    sender_ids = list({sid for sid in sender_ids if sid is not None})  # unique + safe
+
+    if sender_ids:
+        users = db.query(models.User).filter(models.User.id.in_(sender_ids)).all()
+        user_map = {u.id: u.public_handle for u in users}
+    else:
+        user_map = {}
+
 
     return [
         schemas.MessageOut(
