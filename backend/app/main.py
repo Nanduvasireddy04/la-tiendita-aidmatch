@@ -21,7 +21,14 @@ from app import models
 
 # Base.metadata.create_all(bind=engine)
 
+
+
 app = FastAPI(title="La Tiendita AidMatch 24/7")
+
+@app.get("/health")
+def health():
+    return {"ok": True}
+
 
 @app.get("/geo/zip/{zip_code}", response_model=schemas.ZipLookupResponse)
 def lookup_zip(zip_code: str):
@@ -480,7 +487,12 @@ def list_conversations(
         for c in convos
     ]
 
-# ## on;ine/offline presence 
+@app.get("/")
+def root():
+    return {"status": "running"}
+
+
+# ## onLine/offline presence 
 
 # @app.websocket("/ws/conversations/{conversation_id}")
 # async def ws_conversation(websocket: WebSocket, conversation_id: int):
