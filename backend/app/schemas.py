@@ -106,7 +106,7 @@ class MessageOut(BaseModel):
     body: str
     created_at: datetime
     sender_user_id: int
-    
+    sender_public_handle: str 
     recipient_public_handle: Optional[str] = None
     donor_public_handle: Optional[str] = None
     need_description: Optional[str] | None = None
