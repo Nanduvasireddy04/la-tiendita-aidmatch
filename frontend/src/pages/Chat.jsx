@@ -93,9 +93,13 @@ export default function Chat() {
             const mine = m.sender_user_id === user?.id;
             return (
               <div key={m.id} className={`bubble ${mine ? "mine" : "theirs"}`}>
+
                 <div className="bubble-meta">
-                  {m.sender_public_handle ?? "user"}
+                  {m.sender_public_handle ||
+                    (m.sender_user_id ? `user_${String(m.sender_user_id).slice(0, 8)}` : "user")}
                 </div>
+
+
                 <div>{m.body}</div>
               </div>
             );
