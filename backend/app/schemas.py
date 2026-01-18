@@ -90,6 +90,8 @@ class ConversationOut(BaseModel):
     # helpful for UI
     recipient_public_handle: str
     donor_public_handle: str
+    need_description: Optional[str] = None
+    offer_description: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -104,11 +106,11 @@ class MessageOut(BaseModel):
     body: str
     created_at: datetime
     sender_user_id: int
-    recipient_public_handle: str
-    donor_public_handle: str
-    sender_public_handle: str
-    need_description: Optional [str] | None = None
-    offer_description: Optional [str] | None = None
+    
+    recipient_public_handle: Optional[str] = None
+    donor_public_handle: Optional[str] = None
+    need_description: Optional[str] | None = None
+    offer_description: Optional[str] | None = None
 
     class Config:
         from_attributes = True
